@@ -22,19 +22,22 @@ import android.hardware.SensorEventListener
 import android.content.Context.SENSOR_SERVICE
 import android.graphics.*
 import android.hardware.SensorManager
-
-
+import android.view.ScaleGestureDetector
 
 
 /**
  * Created by Raivk on 07/11/2017.
  */
 
-class DrawingView(context : Context) : View(context), View.OnClickListener{
+class DrawingView(context : Context) : View(context), View.OnClickListener, View.OnTouchListener{
+
+
+    private var mScaleFactor = 1f
+    private lateinit var mScaleDetector : ScaleGestureDetector
 
     var cursor:Cursor
-
     var accelerometer:Sensor
+
 
     var sensorManager = context.getSystemService(SENSOR_SERVICE) as SensorManager
 
@@ -45,6 +48,7 @@ class DrawingView(context : Context) : View(context), View.OnClickListener{
     var drawing = false
 
     init {
+        mScaleDetector =  ScaleGestureDetector(context, ScaleListener())
         cursor = Cursor()
         cursor.position = Vector2(50f, 50f)
         cursor.speed = Vector2(5f, 7f)
@@ -70,11 +74,11 @@ class DrawingView(context : Context) : View(context), View.OnClickListener{
 
         paths = ArrayList<CursorPath>()
 
+        this.setOnTouchListener(this)
         this.setOnClickListener(this)
     }
 
     override fun onDraw(canvas: Canvas){
-
         cursor.Draw(canvas)
         move()
         for(cp:CursorPath in paths){
@@ -93,13 +97,38 @@ class DrawingView(context : Context) : View(context), View.OnClickListener{
         }
     }
 
-    override fun onClick(v: View?) {
-        if(drawing){
-            drawing = false
-        } else {
-            drawing = true
-            paths.add(CursorPath())
-            paths[paths.size - 1].path.moveTo(cursor.position.x, cursor.position.y)
+    override fun onClick(v: View?)
+    {
+            if (drawing) {
+                drawing = false
+            } else {
+                drawing = true
+                paths.add(CursorPath(mScaleFactor))
+                paths[paths.size - 1].path.moveTo(cursor.position.x, cursor.position.y)
+            }
+    }
+
+
+    override fun onTouch(p0: View?, p1: MotionEvent?): Boolean
+    {
+
+            mScaleDetector.onTouchEvent((p1))
+
+        return false
+    }
+
+
+    private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener()
+    {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            mScaleFactor *= detector.scaleFactor
+
+            // Don't let the object get too small or too large.
+            mScaleFactor = Math.max(20f, Math.min(mScaleFactor, 100f))
+            cursor.size = mScaleFactor
+            //CursorPath.size = mScaleFactor
+            invalidate()
+            return true
         }
     }
 }

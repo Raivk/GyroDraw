@@ -16,17 +16,21 @@ import java.util.*
 
 class CursorPath{
 
-    var size: Float
-
     //PATH
     var paint:Paint
     var path: Path
+    var size: Float = 10f
+
+    constructor(size: Float)
+    {
+        this.size = size
+    }
+
 
     init {
         paint = Paint()
         paint.style = Paint.Style.STROKE
         paint.color = Color.BLACK
-        size = 10f
         paint.strokeWidth = size
         path = Path()
     }
