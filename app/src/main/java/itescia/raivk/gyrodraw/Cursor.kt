@@ -19,12 +19,12 @@ class Cursor{
     var speed: Vector2
     var size: Float
 
-    var color: Paint
+    var paint: Paint
 
     init {
         position = Vector2()
         speed = Vector2()
-        color = Paint()
+        paint = Paint()
         size = 20f
     }
 
@@ -52,7 +52,7 @@ class Cursor{
     }
 
     fun Draw(canvas: Canvas){
-        canvas.drawCircle(position.x, position.y, size, color)
+        canvas.drawCircle(position.x, position.y, size, paint)
     }
 
 }

@@ -3,6 +3,7 @@
     package="itescia.raivk.gyrodraw">
 
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.magnetic_field" android:required="true" />
 
     <application
         android:allowBackup="true"

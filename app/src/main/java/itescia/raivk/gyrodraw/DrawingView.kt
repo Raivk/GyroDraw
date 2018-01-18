@@ -37,11 +37,13 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
 
     var cursor:Cursor
     var accelerometer:Sensor
+    var magnetic:Sensor
 
 
     var sensorManager = context.getSystemService(SENSOR_SERVICE) as SensorManager
 
     var accelerometerSensorListener : SensorEventListener
+    var magneticSensorListener : SensorEventListener
 
     var paths:ArrayList<CursorPath>
 
@@ -53,7 +55,10 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
         cursor.position = Vector2(50f, 50f)
         cursor.speed = Vector2(5f, 7f)
 
+        paths = ArrayList<CursorPath>()
+
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        magnetic = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
 
         // Create a listener
         accelerometerSensorListener = object : SensorEventListener {
@@ -69,10 +74,38 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
             override fun onAccuracyChanged(sensor: Sensor, i: Int) {}
         }
 
+        // Create a listener
+        magneticSensorListener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                // Écouter le changement du gyroscope:
+                if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
+                    if(paths.size > 0 && drawing){
+                        var color = event.values[1] + 30
+                        if(color <= 15){
+                            paths[paths.size - 1].paint.color = Color.BLACK
+                            cursor.paint.color = Color.BLACK
+                        } else if(color <= 30){
+                            paths[paths.size - 1].paint.color = Color.RED
+                            cursor.paint.color = Color.RED
+                        } else if(color <= 45){
+                            paths[paths.size - 1].paint.color = Color.BLUE
+                            cursor.paint.color = Color.BLUE
+                        } else {
+                            paths[paths.size - 1].paint.color = Color.GREEN
+                            cursor.paint.color = Color.GREEN
+                        }
+                    }
+                }
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor, i: Int) {}
+        }
+
         sensorManager.registerListener(accelerometerSensorListener,
                 accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
 
-        paths = ArrayList<CursorPath>()
+        sensorManager.registerListener(magneticSensorListener,
+                magnetic, SensorManager.SENSOR_DELAY_NORMAL)
 
         this.setOnTouchListener(this)
         this.setOnClickListener(this)
