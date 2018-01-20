@@ -1,5 +1,6 @@
 package itescia.raivk.gyrodraw
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -20,9 +21,18 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.content.Context.SENSOR_SERVICE
+import android.content.ContextWrapper
 import android.graphics.*
 import android.hardware.SensorManager
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.view.ScaleGestureDetector
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.sql.Time
+import java.util.*
 
 
 /**
@@ -32,13 +42,17 @@ import android.view.ScaleGestureDetector
 class DrawingView(context : Context) : View(context), View.OnClickListener, View.OnTouchListener{
 
 
+    companion object
+    {
+        var saved = false
+    }
+
     private var mScaleFactor = 1f
     private lateinit var mScaleDetector : ScaleGestureDetector
 
     var cursor:Cursor
     var accelerometer:Sensor
     var magnetic:Sensor
-
 
     var sensorManager = context.getSystemService(SENSOR_SERVICE) as SensorManager
 
@@ -119,6 +133,69 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
         }
     }
 
+
+    private fun getBitmap(): Bitmap
+    {
+        this.isDrawingCacheEnabled = true
+        this.buildDrawingCache()
+        var bitmap = Bitmap.createBitmap(this.drawingCache)
+        this.isDrawingCacheEnabled = false
+
+        return bitmap
+    }
+
+    private fun saveBitmap()
+    {
+
+        var random = Random().nextInt()
+        var imageName = "GyroDraw" + random.toString() + "Image.jpg"
+        var file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), imageName)
+
+
+        var outPutStream : FileOutputStream? = null
+
+        try
+        {
+            outPutStream = FileOutputStream(file)
+            getBitmap().compress(Bitmap.CompressFormat.JPEG, 100, outPutStream)
+
+        }
+        catch (e :Exception)
+        {
+            Log.d("Error:", e.toString())
+        }
+        finally
+        {
+            try
+            {
+                outPutStream?.close()
+            }
+            catch (e: Exception)
+            {
+                Log.d("Error:", e.toString())
+            }
+
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+        {
+            val scanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            val contentUri = Uri.fromFile(file)
+            scanIntent.setData(contentUri)
+            this.context.sendBroadcast(scanIntent)
+        }
+        else
+        {
+            var intent = Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://" + Environment.getExternalStorageDirectory()))
+            this.context.sendBroadcast(intent)
+        }
+
+        var intent = Intent();
+        intent.setAction(android.content.Intent.ACTION_VIEW);
+        intent.setType("image/*");
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        this.context.startActivity(intent);
+    }
+
     private fun move(){
         cursor.CollisionHandling(this)
         cursor.position.x += cursor.speed.x
@@ -128,6 +205,17 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
         if(paths.size > 0 && drawing){
             paths[paths.size - 1].Move(cursor.position)
         }
+    }
+
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if(event?.pointerCount == 3 && !saved)
+        {
+            saved = true
+            Drawing.verifyStoragePermissions(this.context as Activity)
+            saveBitmap()
+        }
+        return super.onTouchEvent(event)
     }
 
     override fun onClick(v: View?)
@@ -140,6 +228,7 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
                 paths[paths.size - 1].path.moveTo(cursor.position.x, cursor.position.y)
             }
     }
+
 
 
     override fun onTouch(p0: View?, p1: MotionEvent?): Boolean
