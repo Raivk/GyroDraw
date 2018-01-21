@@ -1,5 +1,6 @@
 package itescia.raivk.gyrodraw
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.graphics.drawable.BitmapDrawable
@@ -22,6 +23,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.content.Context.SENSOR_SERVICE
 import android.content.ContextWrapper
+import android.content.pm.PackageManager
 import android.graphics.*
 import android.hardware.SensorManager
 import android.net.Uri
@@ -126,6 +128,7 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
     }
 
     override fun onDraw(canvas: Canvas){
+        canvas.drawColor(Color.WHITE)
         cursor.Draw(canvas)
         move()
         for(cp:CursorPath in paths){
@@ -144,57 +147,69 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
         return bitmap
     }
 
+
     private fun saveBitmap()
     {
+
 
         var random = Random().nextInt()
         var imageName = "GyroDraw" + random.toString() + "Image.jpg"
         var file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), imageName)
 
 
-        var outPutStream : FileOutputStream? = null
 
-        try
+        if(!checkPermission())
         {
-            outPutStream = FileOutputStream(file)
-            getBitmap().compress(Bitmap.CompressFormat.JPEG, 100, outPutStream)
+            askPermission(file)
+        }
+        else {
+            var outPutStream: FileOutputStream? = null
 
-        }
-        catch (e :Exception)
-        {
-            Log.d("Error:", e.toString())
-        }
-        finally
-        {
-            try
-            {
-                outPutStream?.close()
-            }
-            catch (e: Exception)
-            {
+            try {
+                outPutStream = FileOutputStream(file)
+                getBitmap().compress(Bitmap.CompressFormat.JPEG, 100, outPutStream)
+
+            } catch (e: Exception) {
                 Log.d("Error:", e.toString())
+            } finally {
+                try {
+                    outPutStream?.close()
+                } catch (e: Exception) {
+                    Log.d("Error:", e.toString())
+                }
+
             }
 
+            askPermission(file)
+
+            var intent = Intent()
+            intent.setAction(android.content.Intent.ACTION_VIEW)
+            intent.setType("image/*")
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            this.context.startActivity(intent)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-        {
+    }
+
+    private fun askPermission(path : File)
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             val scanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-            val contentUri = Uri.fromFile(file)
+            val contentUri = Uri.fromFile(path)
             scanIntent.setData(contentUri)
             this.context.sendBroadcast(scanIntent)
-        }
-        else
-        {
+        } else {
             var intent = Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://" + Environment.getExternalStorageDirectory()))
             this.context.sendBroadcast(intent)
         }
 
-        var intent = Intent();
-        intent.setAction(android.content.Intent.ACTION_VIEW);
-        intent.setType("image/*");
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        this.context.startActivity(intent);
     }
+
+    private fun checkPermission():Boolean
+    {
+        var result = context.checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        return result == PackageManager.PERMISSION_GRANTED
+    }
+
 
     private fun move(){
         cursor.CollisionHandling(this)
@@ -209,6 +224,7 @@ class DrawingView(context : Context) : View(context), View.OnClickListener, View
 
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
+
         if(event?.pointerCount == 3 && !saved)
         {
             saved = true

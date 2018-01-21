@@ -12,9 +12,10 @@ import android.support.v4.app.ActivityCompat
 import android.content.pm.PackageManager
 import android.Manifest.permission
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-
-
-
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
 
 
 class Drawing : Activity() {
@@ -34,7 +35,10 @@ class Drawing : Activity() {
         dv = DrawingView(this)
 
         setContentView(dv)
+
+
     }
+
 
     override fun onResume() {
         DrawingView.saved = false
